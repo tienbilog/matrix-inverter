@@ -35,9 +35,9 @@ const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
                             setIsMenuOpen(false);
                         }}
                     >
-                        {/* <span className="nav-icon">⚙️</span> */}
                         Solver
                     </button>
+                    {/* ----- UNCOMMENT IF WE'LL KEEP THE EXPLANATION TAB -----
                     <button
                         className={`nav-item ${currentTab === 'explanation' ? 'active' : ''}`}
                         onClick={() => {
@@ -45,10 +45,8 @@ const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
                             setIsMenuOpen(false);
                         }}
                     >
-                        {/* TODO (or not): better icons */}
-                        {/* <span className="nav-icon">📚</span> */}
                         Explanation
-                    </button>
+                    </button> */}
                     <button
                         className={`nav-item ${currentTab === 'about' ? 'active' : ''}`}
                         onClick={() => {
@@ -56,7 +54,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
                             setIsMenuOpen(false);
                         }}
                     >
-                        {/* <span className="nav-icon">ℹ️</span> */}
                         About
                     </button>
                 </div>

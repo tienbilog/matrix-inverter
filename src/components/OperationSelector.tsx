@@ -10,9 +10,6 @@ const OperationSelector: React.FC<OperationSelectorProps> = ({
     onOperationChange 
 }) => {
     const operations = [
-        { value: 'gaussian-elimination', label: 'Gaussian Elimination' },
-        { value: 'gauss-jordan', label: 'Gauss-Jordan (RREF)' },
-        { value: 'determinant', label: 'Determinant' },
         { value: 'inverse', label: 'Matrix Inverse' },
     ];
 
