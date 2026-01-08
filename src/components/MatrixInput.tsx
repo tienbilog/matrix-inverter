@@ -5,18 +5,16 @@ interface MatrixInputProps {
 }
 
 const MatrixInput: React.FC<MatrixInputProps> = ({ onMatrixInput }) => {
-    const [rows, setRows] = useState<number>(3);
-    const [cols, setCols] = useState<number>(3);
+    const [size, setSize] = useState<number>(3);
     const [matrixValues, setMatrixValues] = useState<string[][]>(
         Array(3).fill(null).map(() => Array(3).fill(''))
     );
     const [error, setError] = useState<string>('');
 
-    const handleDimensionChange = (newRows: number, newCols: number) => {
-        setRows(newRows);
-        setCols(newCols);
-        // Initialize matrix with empty strings
-        const newMatrix = Array(newRows).fill(null).map(() => Array(newCols).fill(''));
+    const handleSizeChange = (newSize: number) => {
+        setSize(newSize);
+        // Initialize square matrix with empty strings
+        const newMatrix = Array(newSize).fill(null).map(() => Array(newSize).fill(''));
         setMatrixValues(newMatrix);
         setError('');
     };
@@ -31,9 +29,9 @@ const MatrixInput: React.FC<MatrixInputProps> = ({ onMatrixInput }) => {
     const parseMatrix = (): number[][] | null => {
         const result: number[][] = [];
         
-        for (let i = 0; i < rows; i++) {
+        for (let i = 0; i < size; i++) {
             const row: number[] = [];
-            for (let j = 0; j < cols; j++) {
+            for (let j = 0; j < size; j++) {
                 const value = parseFloat(matrixValues[i][j]);
                 if (isNaN(value) || matrixValues[i][j].trim() === '') {
                     setError(`Invalid value at row ${i + 1}, column ${j + 1}`);
@@ -58,37 +56,25 @@ const MatrixInput: React.FC<MatrixInputProps> = ({ onMatrixInput }) => {
     };
 
     const handleClear = () => {
-        setMatrixValues(Array(rows).fill(null).map(() => Array(cols).fill('')));
+        setMatrixValues(Array(size).fill(null).map(() => Array(size).fill('')));
         setError('');
     };
 
     return (
         <div className="matrix-input">
-            <h2>Input Matrix</h2>
+            <h2>Input Square Matrix</h2>
             
             <div style={{ marginBottom: '20px', color: '#ddd' }}>
                 <label>
-                    Rows: 
+                    Matrix Size (n × n): 
                     <select 
-                        value={rows} 
-                        onChange={(e) => handleDimensionChange(parseInt(e.target.value), cols)}
-                        style={{ marginLeft: '10px', marginRight: '20px' }}
-                    >
-                        {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                            <option key={n} value={n}>{n}</option>
-                        ))}
-                    </select>
-                </label>
-                
-                <label>
-                    Columns: 
-                    <select 
-                        value={cols} 
-                        onChange={(e) => handleDimensionChange(rows, parseInt(e.target.value))}
+                        value={size} 
+                        onChange={(e) => handleSizeChange(parseInt(e.target.value))}
                         style={{ marginLeft: '10px' }}
                     >
-                        {[2, 3, 4, 5, 6, 7, 8].map(n => (
-                            <option key={n} value={n}>{n}</option>
+                        {/* since n ≤ 10 */}
+                        {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                            <option key={n} value={n}>{n} × {n}</option>
                         ))}
                     </select>
                 </label>
@@ -97,7 +83,7 @@ const MatrixInput: React.FC<MatrixInputProps> = ({ onMatrixInput }) => {
             <form onSubmit={handleSubmit}>
                 <div style={{ 
                     display: 'grid', 
-                    gridTemplateColumns: `repeat(${cols}, 70px)`,
+                    gridTemplateColumns: `repeat(${size}, 70px)`,
                     gap: '5px',
                     marginBottom: '20px',
                     justifyContent: 'center'
@@ -126,7 +112,7 @@ const MatrixInput: React.FC<MatrixInputProps> = ({ onMatrixInput }) => {
                 {error && <p style={{ color: 'red', marginBottom: '10px' }}>{error}</p>}
                 
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                    <button type="submit" className="button">Solve</button>
+                    <button type="submit" className="button">Calculate Inverse</button>
                     <button type="button" onClick={handleClear} className="button">Clear</button>
                 </div>
             </form>
