@@ -84,18 +84,15 @@ const cleanMatrix = (matrix: number[][]): number[][] => {
 // Helper: Format number for display in steps
 // tries to express as integer, fraction, or minimal decimals
 const formatStepNumber = (num: number): string => {
-    // If it's essentially an integer, show it as such
     if (Math.abs(num - Math.round(num)) < 1e-10) {
         return Math.round(num).toString();
     }
     
-    // Try to express as a simple fraction
     const fraction = toFraction(num);
     if (fraction) {
         return fraction;
     }
     
-    // Otherwise show with minimal decimals
     return num.toFixed(2).replace(/\.?0+$/, '');
 };
 
@@ -111,7 +108,6 @@ const toFraction = (decimal: number): string | null => {
     let numerator = 1;
     let denominator = 1;
     
-    // Try denominators up to 20
     for (let d = 2; d <= 20; d++) {
         const n = Math.round(decimal * d);
         if (Math.abs(n / d - decimal) < tolerance) {
@@ -123,7 +119,6 @@ const toFraction = (decimal: number): string | null => {
     
     if (denominator === 1) return null;
     
-    // Simplify fraction
     const gcd = (a: number, b: number): number => b === 0 ? Math.abs(a) : gcd(b, a % b);
     const divisor = gcd(numerator, denominator);
     numerator /= divisor;
@@ -140,95 +135,55 @@ const toFraction = (decimal: number): string | null => {
 
 /**
  * Gauss-Jordan Elimination - To RREF
- * 
- * Goal: Create identity matrix with zeroes everywhere except diagonal
- * 
- * Diff from Gaussian Elimination:
- * - REF: Only eliminates below pivot (creates upper triangular)
- * - RREF: Eliminates both above and below pivots(create diagonal)
- * 
- * Process:
- * 1. For each row (top to bottom):
- *      a. find non-zero pivot (move to nexxt column if needed)
- *      b. swap rows to get pivot in position
- *      c. scale row to make pivot =1
- *      d. eliminate all other rows (both above and below ) <- KEY DIFF from REF
- * 2. Result: each leading 1 is the only non zero in  its column
- * 3. Solutions can be read directly: last column = variable values
- * 
- * Use cased:
- * - solving systems where you want direct answer (no back substitution)
- * - finding matrix inverse (augment with identity)
- * - determining linear independence
- * - findng basis for col/row space 
- * 
- * @param inputMatrix - originsl matrix
- * @returns object wth steps and solution result
  */
 export const gaussJordan = (inputMatrix: number[][]): { steps: Step[], result: SolutionResult } => {
     const steps: Step[] = [];
     let matrix = cleanMatrix(copyMatrix(inputMatrix));
-    const n = matrix.length; // # of rows
-    const m = matrix[0].length; // # of columns
+    const n = matrix.length;
+    const m = matrix[0].length;
     
-    // step 0: record initial state
     steps.push({
-        description: '📋 Initial Matrix - We will transform this into Reduced Row Echelon Form (RREF)',
+        description: 'Initial Matrix - We will transform this into Reduced Row Echelon Form (RREF)',
         matrix: copyMatrix(matrix),
     });
 
-    let lead = 0; // track leading column (where we loop for pivots)
+    let lead = 0;
     let stepCount = 1;
 
-    // main loop: process each loop
     for (let row = 0; row < n; row++) {
-        if (lead >= m) break; // no more columns to process
+        if (lead >= m) break;
 
-        steps.push({
-            description: `\n🎯 Working on Row ${row + 1}, Column ${lead + 1}`,
-            matrix: copyMatrix(matrix),
-            highlightedRows: [row]
-        });
-
-        // ----- Find pivots: search down from current position 
-        // if current position is 0, check rows below
-        // if all are zero, move to next column
         let pivotRow = row;
         while (Math.abs(matrix[pivotRow][lead]) < 1e-10) {
-            pivotRow++; // try next row
+            pivotRow++;
             if (pivotRow === n) {
-                // all rows below are zero inthis column
-                pivotRow = row; // reset
-                lead++; // move to next column
-                if (lead === m) break; // no more column
+                pivotRow = row;
+                lead++;
+                if (lead === m) break;
             }
         }
 
-        if (lead === m) break; // ran out of column
+        if (lead === m) break;
 
-        // ----- Swap: move pivot row to current position
         if (pivotRow !== row) {
             matrix = swapRows(matrix, row, pivotRow);
             steps.push({
-                description: `Step ${stepCount++}: 🔄 Swap Row ${row + 1} with Row ${pivotRow + 1}\n` +
-                            `Operation: $R_{${row + 1}} \\leftrightarrow R_{${pivotRow + 1}}$\n` +
-                            `Why? We need a non-zero pivot in this position.`,
+                description: `Step ${stepCount++}: Swap Row ${row + 1} with Row ${pivotRow + 1}\n` +
+                            `Operation: $R_{${row + 1}} \\leftrightarrow R_{${pivotRow + 1}}$`,
                 matrix: copyMatrix(matrix),
                 highlightedRows: [row, pivotRow],
                 operation: 'swap'
             });
         }
 
-        // ----- Scale: make pivot equal to 1
         const pivot = matrix[row][lead];
-        // only scale if pivot is non zero and not already 1
         if (Math.abs(pivot) > 1e-10 && Math.abs(pivot - 1) > 1e-10) {
             const factor = 1 / pivot;
             const factorStr = formatStepNumber(factor);
             matrix = multiplyRow(matrix, row, factor);
             matrix = cleanMatrix(matrix);
             steps.push({
-                description: `Step ${stepCount++}: ✖️ Scale Row ${row + 1} to make pivot = 1\n` +
+                description: `Step ${stepCount++}: Scale Row ${row + 1} to make pivot = 1\n` +
                             `Operation: $R_{${row + 1}} \\rightarrow ${factorStr}R_{${row + 1}}$`,
                 matrix: copyMatrix(matrix),
                 highlightedRows: [row],
@@ -236,24 +191,17 @@ export const gaussJordan = (inputMatrix: number[][]): { steps: Step[], result: S
             });
         }
 
-        // ----- Eliminate: create zerows in all other rows
-        // eliminator both above and below the pivot
         for (let i = 0; i < n; i++) {
-            if (i !== row) { // to not eliminate the pivot row itself
+            if (i !== row) {
                 const factor = matrix[i][lead];
                 if (Math.abs(factor) > 1e-10) {
                     const factorStr = formatStepNumber(factor);
-
-                    // subtract (factor * pivot row) from this row
                     matrix = addRows(matrix, i, row, -factor);
                     matrix = cleanMatrix(matrix);
                     
-                    // indicate whether we're eliminating above or below
-                    const direction = i < row ? '⬆️ above' : '⬇️ below';
                     steps.push({
-                        description: `Step ${stepCount++}: ➖ Eliminate ${direction} the pivot\n` +
-                                    `Operation: $R_{${i + 1}} \\rightarrow R_{${i + 1}} - ${factorStr}R_{${row + 1}}$\n` +
-                                    `Goal: Create zeros in Column ${lead + 1} for all rows except Row ${row + 1}`,
+                        description: `Step ${stepCount++}: Eliminate entries in Column ${lead + 1}\n` +
+                                    `Operation: $R_{${i + 1}} \\rightarrow R_{${i + 1}} - ${factorStr}R_{${row + 1}}$`,
                         matrix: copyMatrix(matrix),
                         highlightedRows: [row, i],
                         operation: 'add'
@@ -262,26 +210,22 @@ export const gaussJordan = (inputMatrix: number[][]): { steps: Step[], result: S
             }
         }
 
-        lead++; // move to next column for next row
+        lead++;
     }
 
     steps.push({
-        description: '🎉 Reduced Row Echelon Form (RREF) Achieved!\n' +
-                    'Each leading 1 is the ONLY non-zero entry in its column.\n' +
-                    'Solutions can be read directly from the matrix!',
+        description: 'Reduced Row Echelon Form (RREF) Achieved',
         matrix: copyMatrix(matrix),
     });
 
-    // ----- Extract solution: for augmented matrices, last column = answers
     const solution: number[] = [];
-    if (m === n + 1) { // augmented matrix check
+    if (m === n + 1) {
         for (let i = 0; i < n; i++) {
-            // last column value in each row is the solution for that variable
             solution.push(cleanNumber(matrix[i][m - 1]));
         }
         
         steps.push({
-            description: '📊 Solution Summary:\n' + 
+            description: 'Solution Summary:\n' + 
                         solution.map((val, idx) => `$x_{${idx + 1}} = ${formatStepNumber(val)}$`).join('\n'),
             matrix: copyMatrix(matrix),
         });
@@ -298,40 +242,14 @@ export const gaussJordan = (inputMatrix: number[][]): { steps: Step[], result: S
 
 /**
  * Matrix Inverse using Gauss-Jordan
- * 
- * About Matrix inverse (A^-1):
- * - unique matrix such that: A × A⁻¹ = A⁻¹ × A = I (identity matrix)
- * 
- * Intuition:
- * - regular number: 5 * (1/5) = 1
- * - matrices: A * A^-1 = I
- * - "undoing" the transformation A
- * 
- * Requirements: 
- * - must be square
- * - must be invertible (det != 0)
- * 
- * Method: Augment matrix with gauss jordan
- * 1. Create [A | I] - augment original with identity matrix
- * 2. Apply gauss-jordan to transform left side to identity
- * 3. When left becomes I, right becomes A^-1
- * 
- * WHY IT WORKS:
- * Row operations on [A | I] are like multiplying both sides by a matrix:
- *   E₃E₂E₁A = I    (left side becomes identity)
- *   E₃E₂E₁I = A⁻¹  (right side becomes inverse)
- * 
- * @param inputMatrix - square matrix to invert
- * @returns 
  */
 export const calculateInverse = (inputMatrix: number[][]): { steps: Step[], result: SolutionResult } => {
     const steps: Step[] = [];
     const n = inputMatrix.length;
     
-    // ----- Validation: must be square matrix
     if (n !== inputMatrix[0].length) {
         steps.push({
-            description: '❌ Error: Only square matrices have inverses',
+            description: 'Error: Only square matrices have inverses',
             matrix: copyMatrix(inputMatrix),
         });
         return {
@@ -343,76 +261,54 @@ export const calculateInverse = (inputMatrix: number[][]): { steps: Step[], resu
         };
     }
 
-    // ----- Step 1: Create augmented matrix [A | I]
-    // left side: original matrix A
-    // right side: identity matrix I (1s on diagonal)
     const augmented: number[][] = inputMatrix.map((row, i) => [
-        ...row, // copy of original row
-        ...Array(n).fill(0).map((_, j) => (i === j ? 1 : 0)) // add the identity row
+        ...row,
+        ...Array(n).fill(0).map((_, j) => (i === j ? 1 : 0))
     ]);
-    // result: 2n columns (from A and I)
 
     steps.push({
-        description: '📋 Step 1: Create Augmented Matrix $[A | I]$\n' +
-                    'Left side: Original matrix $A$\n' +
-                    'Right side: Identity matrix $I$\n\n' +
-                    'Goal: Transform left side to $I$, then right side becomes $A^{-1}$',
+        description: 'Initial Matrix - Augmented Matrix [A | I]',
         matrix: copyMatrix(augmented),
     });
 
-    // ----- Step 2: Apply Gauss-Jordan to get [I | A^(-1)]
-    // use the existing gauss-jordan function!
-    // it will reduce the left side (A) to identity form
-    // also, the right side (I) becomes the inverse
     const result = gaussJordan(augmented);
 
-    // Check if gaussJordan returned a valid matrix
     if (!result.result.finalMatrix) {
-        steps.push(...result.steps);
-        return {
-            steps,
-            result: {
-                error: 'Failed to process matrix'
-            }
-        };
-    }
-    
-    // ----- Step 3: Extract inverse from right side
-    // after gauss-jordan, columns n to 2n-1 contain A^-1
-    const inverse = result.result.finalMatrix.map(row => row.slice(n));
-    
-    // ----- Verification: Check if we got identity on left side
-    // if not, matrix is singular (non-invertible)
-    const isIdentity = result.result.finalMatrix.every((row, i) => 
-        row.slice(0, n).every((val, j) => 
-            // check: diagonal should be 1, off-diagonal should be 0
-            Math.abs(val - (i === j ? 1 : 0)) < 1e-10)
-    );
-
-    if (!isIdentity) {
-        // matrix reduction failed -> matrix is singular
-        steps.push(...result.steps);
         steps.push({
-            description: '❌ **THE MATRIX IS SINGULAR**\n\n' +
-                        'The matrix is NOT INVERTIBLE because:\n' +
-                        '- The left side could not be reduced to the identity matrix\n' +
-                        '- This means $\\det(A) = 0$\n' +
-                        '- No inverse exists for this matrix',
-            matrix: result.result.finalMatrix
+            description: 'The matrix is singular',
+            matrix: copyMatrix(augmented),
         });
         return {
             steps,
             result: { 
-                error: 'The matrix is singular'
+                error: 'The matrix is singular and has no inverse.'
             }
         };
     }
 
-    steps.push(...result.steps);
+    const isIdentity = result.result.finalMatrix.every((row, i) => 
+        row.slice(0, n).every((val, j) => 
+            Math.abs(val - (i === j ? 1 : 0)) < 1e-10)
+    );
+
+    if (!isIdentity) {
+        steps.push({
+            description: 'The matrix is singular',
+            matrix: copyMatrix(augmented),
+        });
+        return {
+            steps,
+            result: { 
+                error: 'The matrix is singular and has no inverse.'
+            }
+        };
+    }
+
+    const inverse = result.result.finalMatrix.map(row => row.slice(n));
+
+    steps.push(...result.steps.slice(1));
     steps.push({
-        description: '🎉 Inverse Matrix Found!\n' +
-                    'The right side of our augmented matrix is now $A^{-1}$\n\n' +
-                    'Verification: $A \\times A^{-1} = I$ (Identity Matrix)',
+        description: 'Inverse Matrix Found',
         matrix: inverse
     });
 
